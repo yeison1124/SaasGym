@@ -7,21 +7,32 @@ import { MemberHeader } from '@/components/member/MemberHeader';
 import { ExerciseVideoModal } from '@/components/member/ExerciseVideoModal';
 import { PostWorkoutSurveyModal } from '@/components/member/PostWorkoutSurveyModal';
 import {
+  saveRoutineForOffline,
+  getOfflineRoutine,
+  notifyAchievementUnlocked,
+  notifyWorkoutReminder,
+} from '@/lib/pwa';
+import {
   Clock,
   Flame,
   Settings,
   CheckCircle2,
   Play,
   RotateCcw,
-  Check
+  Check,
+  WifiOff,
+  Bell,
+  Sparkles,
 } from 'lucide-react';
 
 export default function MemberWorkoutPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
   const [selectedVideoExercise, setSelectedVideoExercise] = useState<any | null>(null);
   const [showSurveyModal, setShowSurveyModal] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
 
   const [markedExercises, setMarkedExercises] = useState<Record<string, boolean>>({
     'cinta': true
@@ -93,6 +104,29 @@ export default function MemberWorkoutPage() {
     }
   ];
 
+  // Guardar rutina automáticamente para soporte offline
+  useEffect(() => {
+    saveRoutineForOffline({
+      routineName: 'Hipertrofia 4 días',
+      duration: '60 min',
+      calories: '420 kcal',
+      warmup: warmupExercises,
+      main: mainExercises,
+    });
+
+    const updateOnlineStatus = () => setIsOffline(!navigator.onLine);
+    if (typeof navigator !== 'undefined') {
+      setIsOffline(!navigator.onLine);
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+
   const toggleMark = (id: string) => {
     setMarkedExercises(prev => ({
       ...prev,
@@ -116,6 +150,13 @@ export default function MemberWorkoutPage() {
       });
     } catch (err) {
       console.error(err);
+    }
+
+    // 🏆 Disparar Push Notification de logro y sesión completada
+    try {
+      await notifyAchievementUnlocked('Racha Imparable (4 días seguidos)');
+    } catch (e) {
+      // Notification silent fallback
     }
 
     // Open survey modal

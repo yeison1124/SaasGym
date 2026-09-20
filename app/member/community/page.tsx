@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { MemberSidebar } from '@/components/member/MemberSidebar';
 import { MemberHeader } from '@/components/member/MemberHeader';
+import { notifyCommunityMessage } from '@/lib/pwa';
 import {
   Image as ImageIcon,
   Heart,
@@ -13,7 +14,8 @@ import {
   Send,
   Sparkles,
   X,
-  Plus
+  Plus,
+  Bell
 } from 'lucide-react';
 
 interface Comment {
@@ -145,11 +147,12 @@ export default function MemberCommunityPage() {
   const handleAddComment = (postId: string) => {
     if (!newCommentText.trim()) return;
 
+    const commentContent = newCommentText;
     const newComment: Comment = {
       id: `c-${Date.now()}`,
       author: 'María Jiménez',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      content: newCommentText,
+      content: commentContent,
       time: 'Ahora'
     };
 
@@ -162,8 +165,14 @@ export default function MemberCommunityPage() {
       }
       return p;
     }));
-
     setNewCommentText('');
+
+    // 🔔 Disparar notificación push para simular interacción de comunidad
+    try {
+      notifyCommunityMessage('María Jiménez', commentContent);
+    } catch (e) {
+      // silent
+    }
   };
 
   const activePost = posts.find(p => p.id === activeCommentPostId);

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F26522"/>
+      <stop offset="100%" stop-color="#D94E10"/>
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#FFE8DF"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle / App Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+
+  <!-- Subtle Inner Glow Circle -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="4"/>
+
+  <!-- GymPulse Dumbbell & Pulse Wave Glyph -->
+  <g filter="url(#shadow)" transform="translate(40, 20)">
+    <!-- Left Weight Plate -->
+    <rect x="90" y="180" width="36" height="152" rx="14" fill="url(#pulseGrad)"/>
+    <rect x="134" y="206" width="22" height="100" rx="9" fill="url(#pulseGrad)"/>
+
+    <!-- Right Weight Plate -->
+    <rect x="306" y="180" width="36" height="152" rx="14" fill="url(#pulseGrad)"/>
+    <rect x="276" y="206" width="22" height="100" rx="9" fill="url(#pulseGrad)"/>
+
+    <!-- Center Bar & Pulse Heartbeat Line -->
+    <path d="M 156 256 L 195 256 L 210 216 L 226 296 L 246 190 L 262 280 L 276 256" 
+          fill="none" 
+          stroke="url(#pulseGrad)" 
+          stroke-width="18" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+
+  <!-- Small Fitness Spark / Energy Indicator -->
+  <circle cx="370" cy="140" r="16" fill="#FFFFFF"/>
+</svg>
