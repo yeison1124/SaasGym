@@ -1,0 +1,98 @@
+name: Database Restore (Supabase)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag del backup a restaurar (ej: db-backup-2026-09-20-20260920_060000 o "latest")'
+        required: true
+        default: 'latest'
+      confirm_restore:
+        description: 'Escribí "CONFIRMAR" para autorizar la sobreescritura de la base de datos'
+        required: true
+
+jobs:
+  restore:
+    name: Restore Database Backup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_restore }}" != "CONFIRMAR" ]; then
+            echo "❌ Error: Debes escribir exactamente 'CONFIRMAR' para ejecutar la restauración."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL Client Tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-16
+
+      - name: Download Backup Asset
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tagInput = "${{ github.event.inputs.release_tag }}";
+            let targetRelease;
+            
+            if (tagInput === 'latest') {
+              const releases = await github.rest.repos.listReleases({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 50
+              });
+              targetRelease = releases.data.find(r => r.tag_name && r.tag_name.startsWith('db-backup-'));
+            } else {
+              targetRelease = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tagInput
+              }).then(r => r.data).catch(() => null);
+            }
+            
+            if (!targetRelease || !targetRelease.assets || targetRelease.assets.length === 0) {
+              core.setFailed(`No se encontró un backup válido para el tag: ${tagInput}`);
+              return;
+            }
+            
+            const asset = targetRelease.assets[0];
+            console.log(`Descargando backup: ${asset.name} desde Release ${targetRelease.tag_name}...`);
+            
+            const fs = require('fs');
+            const response = await github.rest.repos.getReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              asset_id: asset.id,
+              headers: { accept: 'application/octet-stream' }
+            });
+            
+            fs.writeFileSync('restore_target.sql.gz', Buffer.from(response.data));
+            console.log('✅ Archivo de backup descargado correctamente.');
+
+      - name: Restore into Supabase Database
+        env:
+          DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '5432' }}
+          DB_NAME: ${{ secrets.SUPABASE_DB_NAME || 'postgres' }}
+          DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          if [ -z "$DB_HOST" ] || [ -z "$DB_PASSWORD" ]; then
+            echo "❌ Error: SUPABASE_DB_HOST o SUPABASE_DB_PASSWORD no están configurados en los GitHub Secrets."
+            exit 1
+          fi
+
+          echo "Descomprimiendo archivo de backup..."
+          gunzip -c restore_target.sql.gz > restore_target.sql
+
+          echo "Restaurando base de datos en Supabase ($DB_HOST)..."
+          export PGPASSWORD="$DB_PASSWORD"
+
+          psql \
+            -h "$DB_HOST" \
+            -p "$DB_PORT" \
+            -U "$DB_USER" \
+            -d "$DB_NAME" \
+            -f restore_target.sql
+
+          echo "✅ ¡Base de datos restaurada con éxito!"

@@ -1,0 +1,134 @@
+name: Daily Database Backup (Supabase)
+
+on:
+  schedule:
+    # 3:00 AM Hora de Buenos Aires (UTC-3) -> 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Permite ejecutar el backup manualmente en cualquier momento
+
+jobs:
+  backup:
+    name: Execute Full Database Backup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Para crear Releases y almacenar los backups
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Backup Timestamp & Variables
+        id: vars
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          DATE_STR=$(date +"%Y-%m-%d")
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+          echo "DATE_STR=$DATE_STR" >> $GITHUB_ENV
+          echo "FILENAME=gympulse_backup_${TIMESTAMP}.sql.gz" >> $GITHUB_ENV
+          echo "TAG_NAME=db-backup-${DATE_STR}-${TIMESTAMP}" >> $GITHUB_ENV
+
+      - name: Install PostgreSQL Client Tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-16
+
+      - name: Export Full Database (pg_dump)
+        env:
+          DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          DB_PORT: ${{ secrets.SUPABASE_DB_PORT || '5432' }}
+          DB_NAME: ${{ secrets.SUPABASE_DB_NAME || 'postgres' }}
+          DB_USER: ${{ secrets.SUPABASE_DB_USER || 'postgres' }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          echo "Iniciando exportación de la base de datos Supabase..."
+          
+          if [ -z "$DB_HOST" ] || [ -z "$DB_PASSWORD" ]; then
+            echo "❌ Error: SUPABASE_DB_HOST o SUPABASE_DB_PASSWORD no están configurados en los GitHub Secrets."
+            exit 1
+          fi
+
+          export PGPASSWORD="$DB_PASSWORD"
+
+          # Exportación completa con esquema y datos, comprimida en gzip
+          pg_dump \
+            -h "$DB_HOST" \
+            -p "$DB_PORT" \
+            -U "$DB_USER" \
+            -d "$DB_NAME" \
+            --clean \
+            --if-exists \
+            --no-owner \
+            --no-privileges \
+            | gzip > "$FILENAME"
+
+          FILESIZE=$(du -h "$FILENAME" | cut -f1)
+          echo "✅ Backup completado exitosamente: $FILENAME (Tamaño: $FILESIZE)"
+          echo "FILESIZE=$FILESIZE" >> $GITHUB_ENV
+
+      - name: Save Backup as GitHub Artifact (Retención de 30 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILENAME }}
+          path: ${{ env.FILENAME }}
+          retention-days: 30
+
+      - name: Create GitHub Release with Backup File
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "📦 DB Backup - ${{ env.DATE_STR }}"
+          body: |
+            ### 🛡️ Copia de Seguridad Automática - GymPulse
+            - **Fecha y Hora:** ${{ env.DATE_STR }} 03:00 AM (Hora Buenos Aires)
+            - **Archivo:** `${{ env.FILENAME }}`
+            - **Tamaño:** ${{ env.FILESIZE }}
+            - **Estado:** ✅ Completado sin errores
+            
+            Para restaurar este backup, descargá el archivo o ejecutá el workflow `Database Restore`.
+          files: ${{ env.FILENAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rotate and Keep Last 30 Backups (Prune Old Releases)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const backupReleases = releases.data.filter(r => r.tag_name && r.tag_name.startsWith('db-backup-'));
+            console.log(`Total de backups encontrados: ${backupReleases.length}`);
+            
+            if (backupReleases.length > 30) {
+              const toDelete = backupReleases.slice(30);
+              console.log(`Eliminando ${toDelete.length} backups antiguos para mantener solo los últimos 30...`);
+              
+              for (const rel of toDelete) {
+                console.log(`Borrando release ${rel.tag_name} (ID: ${rel.id})...`);
+                await github.rest.repos.deleteRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: rel.id
+                });
+                
+                try {
+                  await github.rest.git.deleteRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: `tags/${rel.tag_name}`
+                  });
+                } catch (e) {
+                  console.log(`Tag ya eliminado o no encontrado: ${rel.tag_name}`);
+                }
+              }
+            } else {
+              console.log('Se mantienen los últimos 30 backups sin necesidad de purga.');
+            }
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "::error::❌ El backup programado de las 3 AM falló. GitHub enviará una alerta automática por email al administrador del repositorio."
