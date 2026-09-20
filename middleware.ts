@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { checkRateLimit } from '@/lib/rate-limiter';
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -7,6 +8,33 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
+
+  const { pathname } = request.nextUrl;
+
+  // Rutas públicas de autenticación que requieren Rate Limiting
+  const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+
+  // 1. Rate Limiting en rutas de autenticación para mitigar ataques de fuerza bruta
+  if (isAuthRoute) {
+    const ip = request.ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const rateLimit = checkRateLimit(`auth_${ip}`, { limit: 20, windowMs: 60 * 1000 });
+    
+    if (!rateLimit.allowed) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Demasiados intentos. Por motivos de seguridad, por favor intenta nuevamente en 1 minuto.',
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '60',
+          },
+        }
+      );
+    }
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,16 +70,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
-  // Rutas públicas que no deben ser accesibles si ya está autenticado
-  const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
-  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
-
   // Rutas protegidas por rol
   const isAdminRoute = pathname.startsWith('/admin');
   const isDashboardRoute = pathname.startsWith('/dashboard');
-  const isMemberAppRoute = pathname.startsWith('/app');
+  const isMemberAppRoute = pathname.startsWith('/member') || pathname.startsWith('/app');
 
   // Si no está logueado e intenta acceder a ruta protegida
   if (!user && (isAdminRoute || isDashboardRoute || isMemberAppRoute)) {
@@ -75,19 +97,19 @@ export async function middleware(request: NextRequest) {
       if (role === 'superadmin') {
         return NextResponse.redirect(new URL('/admin', request.url));
       } else if (role === 'member') {
-        return NextResponse.redirect(new URL('/app', request.url));
+        return NextResponse.redirect(new URL('/member', request.url));
       } else {
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     }
 
-    // Control de acceso entre roles:
+    // Control estricto de acceso entre roles:
     if (isAdminRoute && role !== 'superadmin') {
-      return NextResponse.redirect(new URL(role === 'member' ? '/app' : '/dashboard', request.url));
+      return NextResponse.redirect(new URL(role === 'member' ? '/member' : '/dashboard', request.url));
     }
 
     if (isDashboardRoute && role !== 'owner' && role !== 'trainer') {
-      return NextResponse.redirect(new URL(role === 'superadmin' ? '/admin' : '/app', request.url));
+      return NextResponse.redirect(new URL(role === 'superadmin' ? '/admin' : '/member', request.url));
     }
 
     if (isMemberAppRoute && role !== 'member') {

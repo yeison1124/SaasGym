@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Logo } from '@/components/ui/Logo';
 import { GymModal } from '@/components/admin/GymModal';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminHeader } from '@/components/admin/AdminHeader';
 import {
   LayoutDashboard,
   Building2,
@@ -152,157 +154,22 @@ export default function GymsManagementPage() {
     return true;
   });
 
-  const adminName = profile?.full_name || 'Nico Sosa';
-  const adminInitials = adminName.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || 'NS';
+  const adminName = profile?.full_name || 'Yeison Carreño';
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#181D27] flex font-sans">
-      {/* 1. LEFT SIDEBAR (Matching Image 2 / SuperAdmin Layout) */}
-      <aside className="w-64 border-r border-[#EBE7DF] bg-[#FAF8F5] p-5 hidden md:flex flex-col justify-between shrink-0 sticky top-0 h-screen overflow-y-auto">
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <Link href="/admin">
-              <Logo />
-            </Link>
-            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FFF4ED] text-[#F26522] text-[10px] font-extrabold uppercase tracking-wider">
-              ⭐ SUPERADMIN
-            </div>
-          </div>
-
-          {/* Internal Console Card */}
-          <div className="p-3.5 rounded-2xl bg-[#FFFFFF] border border-[#EBE7DF] shadow-2xs">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
-              CONSOLA INTERNA
-            </div>
-            <div className="text-xs font-bold text-[#181D27] mt-0.5">
-              GetGym Platform
-            </div>
-            <div className="text-[11px] text-[#535862]">
-              {gyms.length} gimnasios registrados
-            </div>
-          </div>
-
-          {/* Navigation Sections */}
-          <nav className="space-y-5 text-xs">
-            <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] px-2">
-                PLATAFORMA
-              </div>
-              <Link
-                href="/admin"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-[#535862] hover:text-[#181D27] hover:bg-[#F3EFEA] font-medium transition-all"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <Link
-                href="/admin/gyms"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-[#F3EFEA] text-[#181D27] font-bold transition-all"
-              >
-                <Building2 className="w-4 h-4 text-[#181D27]" />
-                Gimnasios
-              </Link>
-              <a
-                href="#"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-[#535862] hover:text-[#181D27] hover:bg-[#F3EFEA] font-medium transition-all"
-              >
-                <Users className="w-4 h-4" />
-                Usuarios
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-[#535862] hover:text-[#181D27] hover:bg-[#F3EFEA] font-medium transition-all"
-              >
-                <BarChart3 className="w-4 h-4" />
-                Analytics
-              </a>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] px-2">
-                NEGOCIO
-              </div>
-              <a
-                href="#"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-[#535862] hover:text-[#181D27] hover:bg-[#F3EFEA] font-medium transition-all"
-              >
-                <CreditCard className="w-4 h-4" />
-                Planes
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-[#535862] hover:text-[#181D27] hover:bg-[#F3EFEA] font-medium transition-all"
-              >
-                <Receipt className="w-4 h-4" />
-                Facturación
-              </a>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] px-2">
-                GENERAL
-              </div>
-              <a
-                href="#"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-[#535862] hover:text-[#181D27] hover:bg-[#F3EFEA] font-medium transition-all"
-              >
-                <Settings className="w-4 h-4" />
-                Configuración
-              </a>
-            </div>
-          </nav>
-        </div>
-
-        {/* Bottom Active Session Widget */}
-        <div className="p-3.5 rounded-2xl bg-[#181D27] text-white space-y-2 mt-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse" />
-            <div className="text-[11px] font-bold text-[#F3EFEA]">Sesión activa</div>
-          </div>
-          <p className="text-[10px] text-[#9CA3AF] leading-tight">
-            {adminName} (SuperAdmin)
-          </p>
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center justify-start gap-1.5 pt-1 text-[11px] font-semibold text-[#F26522] hover:text-[#FF8243] transition-colors cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" /> Cerrar sesión
-          </button>
-        </div>
-      </aside>
+      {/* 1. LEFT SIDEBAR */}
+      <AdminSidebar gymsCount={gyms.length} />
 
       {/* 2. MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top App Bar */}
-        <header className="h-16 border-b border-[#EBE7DF] bg-[#FAF8F5] px-6 flex items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md">
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar gimnasios por nombre, país o ciudad..."
-                className="w-full pl-10 pr-4 py-2 rounded-full bg-[#FFFFFF] border border-[#EBE7DF] text-xs text-[#181D27] placeholder-[#9CA3AF] focus:outline-none focus:border-[#181D27] shadow-2xs"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button className="p-2 rounded-full bg-[#FFFFFF] border border-[#EBE7DF] text-[#535862] hover:text-[#181D27] shadow-2xs">
-              <Bell className="w-4 h-4" />
-            </button>
-            <div className="flex items-center gap-2.5 pl-2 border-l border-[#EBE7DF]">
-              <div className="w-8 h-8 rounded-full bg-[#181D27] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                {adminInitials}
-              </div>
-              <div className="text-left hidden sm:block">
-                <div className="text-xs font-bold text-[#181D27]">{adminName}</div>
-                <div className="text-[10px] text-[#9CA3AF]">SuperAdmin</div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <AdminHeader
+          profile={profile}
+          searchPlaceholder="Buscar gimnasios por nombre, país o ciudad..."
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
 
         {/* Gyms View Content */}
         <main className="p-6 sm:p-8 space-y-6 max-w-7xl">

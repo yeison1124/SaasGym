@@ -16,7 +16,7 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: 'GetGym — SaaS de Retención para Gimnasios',
+  title: 'GymPulse — SaaS de Retención para Gimnasios',
   description:
     'Detectá qué miembros están por irse antes de que dejen de pagar. El motor de retención que se paga solo.',
 };

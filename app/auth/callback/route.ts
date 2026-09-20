@@ -44,7 +44,7 @@ export async function GET(request: Request) {
         if (profile?.role === 'superadmin') {
           return NextResponse.redirect(`${origin}/admin`);
         } else if (profile?.role === 'member') {
-          return NextResponse.redirect(`${origin}/app`);
+          return NextResponse.redirect(`${origin}/member`);
         } else {
           return NextResponse.redirect(`${origin}/dashboard`);
         }

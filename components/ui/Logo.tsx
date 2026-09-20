@@ -3,7 +3,7 @@ import React from 'react';
 export function Logo({ className = '' }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
-      {/* Icon matching the reference images: black circular badge with connected dumbbells/arrows */}
+      {/* Icon: Modern sleek pulse / dumbbell badge */}
       <div className="w-8 h-8 rounded-full bg-[#181D27] flex items-center justify-center text-white shadow-sm shrink-0">
         <svg
           viewBox="0 0 24 24"
@@ -21,7 +21,7 @@ export function Logo({ className = '' }: { className?: string }) {
         </svg>
       </div>
       <span className="text-xl font-extrabold tracking-tight text-[#181D27]">
-        GetGym
+        GymPulse
       </span>
     </div>
   );

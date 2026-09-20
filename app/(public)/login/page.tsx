@@ -65,7 +65,7 @@ function LoginFormContent() {
         } else if (role === 'superadmin') {
           router.push('/admin');
         } else if (role === 'member') {
-          router.push('/app');
+          router.push('/member');
         } else {
           // owner o trainer
           router.push('/dashboard');
