@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { OwnerSidebar } from '@/components/dashboard/OwnerSidebar';
@@ -21,9 +21,10 @@ import {
   Dumbbell,
   Filter,
   Eye,
+  Loader2,
 } from 'lucide-react';
 
-export default function OwnerMembersPage() {
+function MembersPageContent() {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const initialFilter = searchParams.get('filter') === 'risk' ? 'risk' : 'all';
@@ -421,3 +422,18 @@ export default function OwnerMembersPage() {
     </div>
   );
 }
+
+export default function OwnerMembersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#F26522]" />
+        </div>
+      }
+    >
+      <MembersPageContent />
+    </Suspense>
+  );
+}
+
