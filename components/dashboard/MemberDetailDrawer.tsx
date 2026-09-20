@@ -176,6 +176,43 @@ export function MemberDetailDrawer({
               </div>
             </div>
 
+            {/* ⌚ Wearables Biometrics (Apple HealthKit & Fitbit) */}
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+                  WEARABLES & BIOMETRÍA
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                  HealthKit + Fitbit Activo
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#EBE7DF] space-y-2.5">
+                <div className="grid grid-cols-2 gap-2 text-center">
+                  <div className="p-2 bg-white rounded-xl border border-[#EBE7DF]">
+                    <span className="text-[10px] text-[#717680] block font-semibold">FC Prom. Entreno</span>
+                    <strong className="text-xs text-[#181D27] font-black">142 bpm</strong>
+                  </div>
+                  <div className="p-2 bg-white rounded-xl border border-[#EBE7DF]">
+                    <span className="text-[10px] text-[#717680] block font-semibold">Calorías Hoy</span>
+                    <strong className="text-xs text-[#F26522] font-black">580 kcal</strong>
+                  </div>
+                  <div className="p-2 bg-white rounded-xl border border-[#EBE7DF]">
+                    <span className="text-[10px] text-[#717680] block font-semibold">Pasos Diarios</span>
+                    <strong className="text-xs text-emerald-700 font-black">9.420</strong>
+                  </div>
+                  <div className="p-2 bg-white rounded-xl border border-[#EBE7DF]">
+                    <span className="text-[10px] text-[#717680] block font-semibold">Calidad Sueño</span>
+                    <strong className="text-xs text-indigo-700 font-black">7.8h (88%)</strong>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-emerald-50/80 rounded-xl border border-emerald-200 text-[10.5px] text-emerald-900 leading-snug">
+                  🛡️ <strong>Impacto en Score:</strong> -15 pts de riesgo por alta actividad aeróbica y recuperación óptima fuera del gym.
+                </div>
+              </div>
+            </div>
+
             {/* Activity Timeline */}
             <div className="space-y-3 text-xs">
               <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">

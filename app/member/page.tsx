@@ -6,6 +6,12 @@ import { createClient } from '@/lib/supabase/client';
 import { MemberSidebar } from '@/components/member/MemberSidebar';
 import { MemberHeader } from '@/components/member/MemberHeader';
 import {
+  getStoredHealthData,
+  syncProviderData,
+  MemberHealthData,
+  DEFAULT_MEMBER_HEALTH_DATA,
+} from '@/lib/health-sync';
+import {
   Calendar,
   Flame,
   Sparkles,
@@ -15,7 +21,15 @@ import {
   X,
   MessageCircle,
   Tag,
-  ArrowRight
+  ArrowRight,
+  Heart,
+  Footprints,
+  Moon,
+  Activity,
+  RefreshCw,
+  Smartphone,
+  Watch,
+  Check
 } from 'lucide-react';
 
 export default function MemberDashboardPage() {
@@ -27,6 +41,9 @@ export default function MemberDashboardPage() {
   const [surveySubmitted, setSurveySubmitted] = useState(false);
   const [showSurvey, setShowSurvey] = useState(true);
   const [showOfferModal, setShowOfferModal] = useState(false);
+  const [showWearableModal, setShowWearableModal] = useState(false);
+  const [isSyncingHealth, setIsSyncingHealth] = useState(false);
+  const [healthData, setHealthData] = useState<MemberHealthData>(DEFAULT_MEMBER_HEALTH_DATA);
 
   const [memberData, setMemberData] = useState({
     name: 'María',
@@ -81,6 +98,19 @@ export default function MemberDashboardPage() {
       console.error('Error loading member dashboard:', err);
     } finally {
       setLoading(false);
+      setHealthData(getStoredHealthData());
+    }
+  };
+
+  const handleSyncHealth = async (provider: 'apple_health' | 'fitbit' = 'apple_health') => {
+    try {
+      setIsSyncingHealth(true);
+      const updated = await syncProviderData(provider);
+      setHealthData(updated);
+    } catch (e) {
+      console.error('Error syncing wearables:', e);
+    } finally {
+      setIsSyncingHealth(false);
     }
   };
 
@@ -113,16 +143,16 @@ export default function MemberDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             {/* Left Main Welcome Hero Card */}
             <div className="lg:col-span-8 bg-white rounded-3xl p-7 md:p-8 border border-[#E9EAEB] shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
-              <div className="space-y-6 flex-1 z-10">
+              <div className="space-y-6 flex-1 z-10 w-full">
                 <div>
                   <span className="text-[11px] font-bold text-[#717680] uppercase tracking-wider block mb-1">
-                    HOLA OTRA VEZ
+                    GIMNASIO IRON STRENGTH
                   </span>
-                  <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#181D27] flex items-center gap-2">
+                  <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#181D27] flex items-center gap-2 font-display">
                     ¡Buen día, {memberData.name}! 🎉
                   </h1>
                   <p className="text-xs text-[#535862] mt-1.5">
-                    Sumate a una clase desde la agenda para arrancar la semana.
+                    Llevás <strong className="text-[#181D27]">{memberData.streakDays} días seguidos</strong> entrenando. ¡No cortes la racha hoy!
                   </p>
                 </div>
 
@@ -214,6 +244,131 @@ export default function MemberDashboardPage() {
                   <span>Aprovechar</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ⌚ SECCIÓN DE SALUD & WEARABLES: APPLE HEALTHKIT + FITBIT */}
+          <div className="bg-white rounded-3xl p-7 md:p-8 border border-[#E9EAEB] shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <h2 className="text-lg font-black text-[#181D27] tracking-tight">
+                    Sincronización de Salud & Wearables
+                  </h2>
+                </div>
+                <p className="text-xs text-[#535862] mt-0.5">
+                  Conectado con <strong>Apple HealthKit</strong> y <strong>Fitbit</strong> · {healthData.lastSync}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => handleSyncHealth('apple_health')}
+                  disabled={isSyncingHealth}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#FAF8F5] hover:bg-[#EBE7DF] border border-[#E9EAEB] rounded-xl text-xs font-bold text-[#344054] transition cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-[#F26522] ${isSyncingHealth ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingHealth ? 'Sincronizando...' : 'Sincronizar ahora'}</span>
+                </button>
+
+                <button
+                  onClick={() => setShowWearableModal(true)}
+                  className="p-2 bg-[#FAF8F5] hover:bg-[#EBE7DF] border border-[#E9EAEB] rounded-xl text-[#535862] hover:text-[#181D27] transition cursor-pointer"
+                  title="Configurar dispositivos"
+                >
+                  <Watch className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Biometric Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 1. Frecuencia Cardíaca */}
+              <div className="bg-[#FAF8F5] rounded-2xl p-5 border border-[#E9EAEB] flex flex-col justify-between hover:border-red-200 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#717680]">FC Entrenamiento</span>
+                  <div className="w-8 h-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+                    <Heart className="w-4 h-4 fill-red-500 animate-pulse" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-[#181D27]">{healthData.workoutHeartRate.avgBpm}</span>
+                    <span className="text-xs font-semibold text-[#717680]">BPM prom.</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-[#535862] mt-1 pt-2 border-t border-[#E9EAEB]">
+                    <span>Pico: <strong>{healthData.workoutHeartRate.maxBpm} bpm</strong></span>
+                    <span className="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-md text-[10px]">{healthData.workoutHeartRate.zone}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Calorías Quemadas */}
+              <div className="bg-[#FAF8F5] rounded-2xl p-5 border border-[#E9EAEB] flex flex-col justify-between hover:border-orange-200 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#717680]">Calorías Hoy</span>
+                  <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#F26522] flex items-center justify-center">
+                    <Flame className="w-4 h-4 fill-[#F26522]" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-[#181D27]">{healthData.todayCalories}</span>
+                    <span className="text-xs font-semibold text-[#717680]">/ {healthData.caloriesGoal} kcal</span>
+                  </div>
+                  <div className="w-full bg-[#E9EAEB] h-1.5 rounded-full overflow-hidden mt-2">
+                    <div
+                      className="bg-gradient-to-r from-[#F26522] to-amber-500 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (healthData.todayCalories / healthData.caloriesGoal) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Pasos Diarios */}
+              <div className="bg-[#FAF8F5] rounded-2xl p-5 border border-[#E9EAEB] flex flex-col justify-between hover:border-emerald-200 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#717680]">Pasos Diarios</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Footprints className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-[#181D27]">{healthData.todaySteps.toLocaleString('es-CO')}</span>
+                    <span className="text-xs font-semibold text-[#717680]">pasos</span>
+                  </div>
+                  <div className="w-full bg-[#E9EAEB] h-1.5 rounded-full overflow-hidden mt-2">
+                    <div
+                      className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (healthData.todaySteps / healthData.stepsGoal) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Calidad del Sueño */}
+              <div className="bg-[#FAF8F5] rounded-2xl p-5 border border-[#E9EAEB] flex flex-col justify-between hover:border-indigo-200 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#717680]">Calidad del Sueño</span>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Moon className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-[#181D27]">{healthData.sleep.durationHours} h</span>
+                    <span className="text-xs font-semibold text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md text-[10px]">
+                      {healthData.sleep.qualityScore}% {healthData.sleep.rating}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-[#535862] mt-1 pt-2 border-t border-[#E9EAEB]">
+                    <span>Profundo: <strong>{healthData.sleep.deepSleepHours}h</strong></span>
+                    <span>REM: <strong>{healthData.sleep.remSleepHours}h</strong></span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -399,6 +554,89 @@ export default function MemberDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Wearable Connection Modal */}
+      {showWearableModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-xl border border-slate-200 space-y-5 animate-slide-up">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E9EAEB]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-50 text-[#F26522] flex items-center justify-center">
+                  <Watch className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#181D27]">Dispositivos & Wearables</h3>
+                  <p className="text-xs text-[#535862]">Sincronización biométrica en tiempo real</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowWearableModal(false)}
+                className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-full cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Apple HealthKit Item */}
+              <div className="p-4 bg-[#FAF8F5] rounded-2xl border border-[#E9EAEB] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white shadow-xs border border-[#E9EAEB] flex items-center justify-center text-red-500">
+                    <Heart className="w-4 h-4 fill-red-500" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#181D27]">Apple HealthKit</h4>
+                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Conectado & Sincronizado
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleSyncHealth('apple_health')}
+                  className="px-3 py-1.5 bg-white border border-[#E9EAEB] text-[#344054] rounded-xl text-xs font-bold hover:bg-neutral-50 transition cursor-pointer"
+                >
+                  Sincronizar
+                </button>
+              </div>
+
+              {/* Fitbit Item */}
+              <div className="p-4 bg-[#FAF8F5] rounded-2xl border border-[#E9EAEB] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white shadow-xs border border-[#E9EAEB] flex items-center justify-center text-teal-600">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#181D27]">Fitbit / Google Fit</h4>
+                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Conectado & Sincronizado
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleSyncHealth('fitbit')}
+                  className="px-3 py-1.5 bg-white border border-[#E9EAEB] text-[#344054] rounded-xl text-xs font-bold hover:bg-neutral-50 transition cursor-pointer"
+                >
+                  Sincronizar
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-orange-50/60 rounded-xl border border-orange-200/60 text-[11px] text-[#9E5310] leading-relaxed">
+              💡 Tus datos de frecuencia cardíaca, pasos y sueño se procesan de forma privada para optimizar tus descansos y mejorar tu score de retención en el gimnasio.
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setShowWearableModal(false)}
+                className="w-full px-4 py-2.5 bg-[#181D27] text-white font-semibold text-xs rounded-xl hover:bg-neutral-800 transition cursor-pointer"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

@@ -1,11 +1,19 @@
 import { RiskBand } from '@/types/database.types';
 
+export interface WearableHealthFactors {
+  dailySteps?: number;
+  sleepQualityScore?: number;
+  caloriesBurned?: number;
+  isWearableSynced?: boolean;
+}
+
 export interface RiskScoreBreakdown {
   daysSinceLastAttendancePoints: number;
   frequencyDropPoints: number;
   noRoutinePoints: number;
   paymentStatusPoints: number;
   tenureUnder90DaysPoints: number;
+  wearableAdjustmentPoints: number; // Factor biométrico HealthKit / Fitbit
   totalScore: number;
   riskBand: RiskBand;
 }
@@ -24,6 +32,7 @@ export function calculateRiskScore(params: {
   paymentStatus: 'paid' | 'pending' | 'failed';
   daysUntilPaymentExpires: number;
   tenureInDays: number;
+  wearables?: WearableHealthFactors;
 }): RiskScoreBreakdown {
   const {
     daysSinceLastAttendance,
@@ -33,6 +42,7 @@ export function calculateRiskScore(params: {
     paymentStatus,
     daysUntilPaymentExpires,
     tenureInDays,
+    wearables,
   } = params;
 
   // 1. Días desde la última asistencia (max 35)
@@ -70,14 +80,30 @@ export function calculateRiskScore(params: {
   // 5. Antigüedad < 90 días (max 10)
   const tenureUnder90DaysPoints = tenureInDays < 90 ? 10 : 0;
 
-  const totalScore = Math.min(
-    100,
+  // 6. Impacto Biométrico de Wearables (Apple Health / Fitbit)
+  let wearableAdjustmentPoints = 0;
+  if (wearables && wearables.isWearableSynced) {
+    const steps = wearables.dailySteps ?? 0;
+    const sleepQuality = wearables.sleepQualityScore ?? 0;
+
+    if (steps >= 8500 && sleepQuality >= 75) {
+      // Usuario activo y saludable fuera del gym -> reduce riesgo de abandono
+      wearableAdjustmentPoints = -15;
+    } else if (steps < 4000 && sleepQuality < 60) {
+      // Sedentarismo y mal descanso -> aumenta riesgo de deserción
+      wearableAdjustmentPoints = +10;
+    }
+  }
+
+  const baseScore =
     daysSinceLastAttendancePoints +
-      frequencyDropPoints +
-      noRoutinePoints +
-      paymentStatusPoints +
-      tenureUnder90DaysPoints
-  );
+    frequencyDropPoints +
+    noRoutinePoints +
+    paymentStatusPoints +
+    tenureUnder90DaysPoints +
+    wearableAdjustmentPoints;
+
+  const totalScore = Math.max(0, Math.min(100, baseScore));
 
   return {
     daysSinceLastAttendancePoints,
@@ -85,7 +111,9 @@ export function calculateRiskScore(params: {
     noRoutinePoints,
     paymentStatusPoints,
     tenureUnder90DaysPoints,
+    wearableAdjustmentPoints,
     totalScore,
     riskBand: getRiskBand(totalScore),
   };
 }
+
