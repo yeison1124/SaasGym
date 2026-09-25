@@ -1,7 +1,13 @@
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ndpdambzuavlisylhkqp.supabase.co';
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGRhbWJ6dWF2bGlzeWxoa3FwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTc4ODMyMiwiZXhwIjoyMTA1MzY0MzIyfQ.sxlPccWfkklgSLc6ankjKXCoXoidwUS86cjtJIBKZl0';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+  console.error('❌ Error: NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY deben estar definidos en .env.local');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
